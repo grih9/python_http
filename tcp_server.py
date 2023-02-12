@@ -12,25 +12,40 @@ class TCPServer:
         self.host = host
         self.port = port
 
-    def start(self):
-        self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        # self.socket.setsockopt()
-        self.__socket.bind((self.host, self.port))
-
-        self.__socket.listen(10)
-
-        logger.info(f"Listening on {self.__socket.getsockname()}")
-        print(f"Listening on port {self.port}, {self.__socket.getsockname()}")
-
+    @staticmethod
+    def read_data(soc):
+        data = b""
         while True:
-            soc, addr = self.__socket.accept()
-            logger.info(f"Connected {addr}")
-            print(f"Connected {addr}")
-            data = soc.recv(1024)
-            response = self.handle_request(data)
-            soc.sendall(response)
-            soc.close()
-            print(f"Closed {addr}")
+            try:
+                tmp = soc.recv(1024)
+                if not tmp:
+                    break
+                data += tmp
+            except TimeoutError:
+                break
+        return data
+
+    def start(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as self.__socket:
+            # self.__socket.setsockopt()
+            self.__socket.bind((self.host, self.port))
+
+            self.__socket.listen(10)
+
+            # logger.info(f"Listening on {self.__socket.getsockname()}")
+            print(f"Listening on port {self.port}, {self.__socket.getsockname()}")
+
+            while True:
+                soc, addr = self.__socket.accept()
+                soc.settimeout(2)
+                with soc:
+                    # logger.info(f"Connected {addr}")
+                    print(f"Connected {addr}")
+                    data = self.read_data(soc)
+                    print(f"Received data {data.decode('utf-8')}")
+                    response = self.handle_request(data)
+                    soc.sendall(response)
+                    print(f"Closed {addr}")
 
     def handle_request(self, data):
         return data

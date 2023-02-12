@@ -14,16 +14,15 @@ class TCPClient:
         self.__socket = None
 
     def connect(self, msg: str):
-        self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        self.__socket.connect((self.host, self.port))
-        self.__socket.send(msg.encode("utf-8"))
-        # logger.info("Message sent")
-        print("Message sent")
-        data = self.__socket.recv(1024)
-        # logger.info(f"Received data {data}")
-        print(f"Received data {data}")
-        self.__socket.close()
-        sleep(2)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as self.__socket:
+            self.__socket.connect((self.host, self.port))
+            self.__socket.sendall(msg.encode("utf-8"))
+            # logger.info("Message sent")
+            print("Message sent")
+            data = self.__socket.recv(1024)
+            # logger.info(f"Received data {data}")
+            print(f"Received data {data}")
+            sleep(2)
 
 
 if __name__ == '__main__':

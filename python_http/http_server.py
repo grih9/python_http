@@ -6,6 +6,13 @@ from string import Template
 from hashlib import md5
 from tcp_server import TCPServer
 
+NON_SECRET = ["/", "/start", "/go/123"]
+SECRET = ["/secret", "/admin"]
+SUPER_SECRET = ["/super_secret"]
+ROUTES = NON_SECRET + SECRET + SUPER_SECRET
+
+user = ["/secret"]
+
 
 class HTTPServer(TCPServer):
     def __init__(self):
@@ -75,6 +82,9 @@ class HTTPServer(TCPServer):
         if my_resp != auth_data['response']:
             return self.http_response(data=b"Auth_failed!", status_code=401, headers=headers, send_data=True)
 
+        if auth_data["uri"] not in user:
+            return self.http_response(data=b"Forbidden!", status_code=403, send_data=True)
+
     def parse_request(self, request):
         lines = request.split(b"\r\n")
         request_line = lines[0]
@@ -94,10 +104,15 @@ class HTTPServer(TCPServer):
         uri = words[1].decode("utf-8")
         http = words[2].decode("utf-8")
         print(f"{method_type=} {uri=} {http=}")
-        res = self.check_auth(headers, method_type, uri)
-        if res:
-            return res
-        return self.http_response(data=b"Hello world!" + uri.encode("utf-8"), status_code=200)
+        if uri in SECRET or uri in SUPER_SECRET:
+            res = self.check_auth(headers, method_type, uri)
+            if res:
+                return res
+            return self.http_response(data=b"This is " + uri.encode("utf-8") + b" page", status_code=200)
+        elif uri in NON_SECRET:
+            return self.http_response(data=b"This is " + uri.encode("utf-8") + b" page", status_code=200)
+        else:
+            return self.http_response(data=uri.encode("utf-8") + b" not found!", status_code=404)
 
     def handle_request(self, request):
         data = self.parse_request(request)

@@ -1,7 +1,9 @@
 import copy
 import uuid
+import time
+import re
 from string import Template
-
+from hashlib import md5
 from tcp_server import TCPServer
 
 
@@ -9,7 +11,6 @@ class HTTPServer(TCPServer):
     def __init__(self):
         super().__init__()
         self.realm = f"{self.host}:{self.port}"
-        self.nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093"
         self.opaque = uuid.uuid4().hex
 
     data = b"HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!"
@@ -29,17 +30,50 @@ class HTTPServer(TCPServer):
         500: "Server error"
     }
 
-    def check_auth(self, data):
+    def md5sum(sefl, data):
+        md_hash = md5()
+        md_hash.update(data.encode("utf-8"))
+        return md_hash.hexdigest()
+
+    def calc_ha1(self, username='test', password="test"):
+        # get_password(username)
+        return self.md5sum(f'{username}:{self.realm}:{password}')
+
+    def check_auth(self, data, method_type, uri):
         is_authorized = "Authorization" in data
+        headers = copy.deepcopy(self.headers)
+        nonce = self.md5sum(str(time.time()))
+        headers["WWW-Authenticate"] = f'Digest realm="{self.realm}", ' \
+                                      f'nonce="{nonce}", ' \
+                                      f'opaque="{self.opaque}", ' \
+                                      f'algorithm=MD5, qop="auth"'
         if not is_authorized:
-            headers = copy.deepcopy(self.headers)
-            headers["WWW-Authenticate"] = f'Digest realm="{self.realm}", ' \
-                                          f'nonce="{self.nonce}", ' \
-                                          f'opaque="{self.opaque}", ' \
-                                          f'algorithm=MD5, qop="auth"'
             return self.http_response(data=b"Authorize please!", status_code=401, headers=headers, send_data=False)
+
         auth_data = data["Authorization"]
-        print(f"{auth_data}")
+        matches = re.compile('Digest \s+ (.*)', re.I + re.X).match(auth_data)
+        if not matches:
+            return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers, send_data=True)
+
+        vals = re.compile(', \s*', re.I + re.X).split(matches.group(1))
+        auth_data = {}
+
+        pat = re.compile('(\S+?) \s* = \s* ("?) (.*) \\2', re.X)
+        for val in vals:
+            ms = pat.match(val)
+            if not ms:
+                return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers, send_data=True)
+            auth_data[ms.group(1)] = ms.group(3)
+
+        if auth_data["opaque"] != self.opaque:
+            return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers, send_data=True)
+
+        ha1 = self.calc_ha1(auth_data["username"])
+        ha2 = self.md5sum(f"{method_type}:{uri}")
+        my_resp = self.md5sum(f"{ha1}:{auth_data['nonce']}:{auth_data['nc']}:{auth_data['cnonce']}:{auth_data['qop']}:{ha2}")
+
+        if my_resp != auth_data['response']:
+            return self.http_response(data=b"Auth_failed!", status_code=401, headers=headers, send_data=True)
 
     def parse_request(self, request):
         lines = request.split(b"\r\n")
@@ -60,7 +94,9 @@ class HTTPServer(TCPServer):
         uri = words[1].decode("utf-8")
         http = words[2].decode("utf-8")
         print(f"{method_type=} {uri=} {http=}")
-        self.check_auth(lines)
+        res = self.check_auth(headers, method_type, uri)
+        if res:
+            return res
         return self.http_response(data=b"Hello world!" + uri.encode("utf-8"), status_code=200)
 
     def handle_request(self, request):
@@ -85,74 +121,6 @@ class HTTPServer(TCPServer):
     def do_post(self, uri, body=None):
         pass
 
-
-import sys
-import re
-from pprint import pprint
-from base64 import *
-from time import time
-import md5
-
-def md5sum(data):
-  m = md5.new()
-  m.update(data)
-  return m.hexdigest()
-
-def calc_ha1(username='test', password="test"):
-    return md5sum(f'{username}:secret:{password}')
-
-def check_authorization(env, resp):
-    matches = re.compile('Digest \s+ (.*)', re.I + re.X).match(resp)
-    if not matches:
-        return None
-
-    vals = re.compile(', \s*', re.I + re.X).split(matches.group(1))
-
-    dict = {}
-
-    pat = re.compile('(\S+?) \s* = \s* ("?) (.*) \\2', re.X)
-    for val in vals:
-        ms = pat.match(val)
-        if not ms:
-            raise 'ERROR'
-        dict[ms.group(1)] = ms.group(3)
-
-    ha1 = calc_ha1(dict['username'])
-    ha2 = md5sum(f"{env['REQUEST_METHOD']}:{dict['uri']}")
-    myresp = md5sum(f"{ha1}:{dict['nonce']}:{dict['nc']}:{dict['cnonce']}:{dict['qop']}:{ha2}")
-    if myresp != dict['response']:
-        print >> sys.stderr, "Auth failed!"
-        return None
-
-      # TODO: check nonce's timestamp
-    cur_nonce = int(time())
-    aut_nonce = int(b64decode(dict['nonce']))
-    pprint({'cli': aut_nonce, 'srv': cur_nonce}, sys.stderr, 2)
-    if cur_nonce - aut_nonce > 10:    # 10sec
-        # print >>sys.stderr, "Too old!"
-        return False
-
-    return dict['username']
-
-def app(environ, start_response):
-  heads = wsgiref.headers.Headers([])
-
-  heads.add_header('Content-Type', 'text/plain')
-
-  auth = environ.get('HTTP_AUTHORIZATION', '')
-  state = check_authorization(environ, auth)
-  if state:
-    start_response('200 OK', heads.items())
-    return ['OK!']
-
-  nonce = b64encode(str(int(time())))
-  auth_head = 'Digest realm="secret", nonce="%s", algorithm=MD5, qop="auth"' % (nonce)
-  if state == False:
-    auth_head += ', stale=true'
-  heads.add_header('WWW-Authenticate', auth_head)
-  start_response('401 Authorization Required', heads.items())
-
-  return ['Hello, World!']
 
 if __name__ == '__main__':
     http_server = HTTPServer()

@@ -1,0 +1,12 @@
+[Unit]
+Description=Digital Auth Web Service
+After=network.target
+
+[Service]
+ExecStart=python /usr/local/sbin/http_server.py
+KillMode=process
+User=digitalauthweb
+Group=digitalauthweb
+
+[Install]
+WantedBy=multi-user.target

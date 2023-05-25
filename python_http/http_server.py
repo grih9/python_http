@@ -15,8 +15,8 @@ user = ["/secret"]
 
 
 class HTTPServer(TCPServer):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, host="localhost", port=8080):
+        super().__init__(host=host, port=port)
         self.realm = f"{self.host}:{self.port}"
         self.opaque = uuid.uuid4().hex
 
@@ -138,5 +138,5 @@ class HTTPServer(TCPServer):
 
 
 if __name__ == '__main__':
-    http_server = HTTPServer()
+    http_server = HTTPServer(port=8050)
     http_server.start()

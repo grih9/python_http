@@ -1,7 +1,6 @@
 all: http_server.py
 
 install: http_server.py
-	sudo apt install python3
 	useradd -c "DigitalAuthWeb user" -r -s /sbin/nologin -d /var/www/digitalauthweb digitalauthweb
 	install -o root -g root -m 0755 http_server.py /usr/local/sbin
 	mkdir -p /var/www/digitalauthweb
@@ -14,7 +13,6 @@ install: http_server.py
 	systemctl restart digitalauthweb.service
 
 uninstall:
-	sudo apt remove python3
 	systemctl stop digitalauthweb
 	rm -rf /var/www/digitalauthweb
 	rm -rf /var/log/digitalauthweb

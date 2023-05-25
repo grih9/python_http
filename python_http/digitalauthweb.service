@@ -3,7 +3,7 @@ Description=Digital Auth Web Service
 After=network.target
 
 [Service]
-ExecStart=python3 /usr/local/sbin/http_server.py
+ExecStart=/usr/bin/python3 /usr/local/sbin/http_server.py
 KillMode=process
 User=digitalauthweb
 Group=digitalauthweb

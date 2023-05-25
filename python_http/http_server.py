@@ -97,13 +97,13 @@ class HTTPServer(TCPServer):
         body = [el.decode("utf-8") for el in body]
         headers = [el.decode("utf-8") for el in headers]
         headers = {s[:s.find(":")]: s[s.find(":") + 2:] for s in headers}
-        print(f"{headers} headers")
-        print(f"{body} body")
+        print(f"headers={headers}")
+        print(f"body={body}")
 
         method_type = words[0].decode("utf-8")
         uri = words[1].decode("utf-8")
         http = words[2].decode("utf-8")
-        print(f"{method_type=} {uri=} {http=}")
+        print(f"method_type={method_type} uri={uri} http={http}")
         if uri in SECRET or uri in SUPER_SECRET:
             res = self.check_auth(headers, method_type, uri)
             if res:

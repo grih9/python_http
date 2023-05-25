@@ -21,8 +21,8 @@ class TCPServer:
                 if not tmp:
                     break
                 data += tmp
-            except TimeoutError:
-                break
+            except socket.timeout:
+                continue
         return data
 
     def start(self):

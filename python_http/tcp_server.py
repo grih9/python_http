@@ -22,7 +22,7 @@ class TCPServer:
                     break
                 data += tmp
             except socket.timeout:
-                continue
+                break
         return data
 
     def start(self):

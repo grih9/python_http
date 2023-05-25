@@ -3,6 +3,7 @@ all: http_server.py
 install: http_server.py
 	useradd -c "DigitalAuthWeb user" -r -s /sbin/nologin -d /var/www/digitalauthweb digitalauthweb
 	install -o root -g root -m 0755 http_server.py /usr/local/sbin
+	install -o root -g root -m 0755 tcp_server.py /usr/local/sbin
 	mkdir -p /var/www/digitalauthweb
 	mkdir -p /var/log/digitalauthweb
 	cp -r webroot /var/www/digitalauthweb/

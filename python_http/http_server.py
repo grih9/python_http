@@ -15,23 +15,6 @@ ROUTES = NON_SECRET + SECRET + SUPER_SECRET
 user = ["/secret"]
 
 
-class Htdigest:
-    htdigest_file = ".htdigest"
-    # admin admin1
-    # user user1
-    # def create(self):
-    #     subprocess.run()
-
-    def read(self, username, realm):
-        with open(file=self.htdigest_file) as f:
-            data = f.readlines()
-            for d in data:
-                parts = d.split(":")
-                if parts[0] == username and ":".join(parts[1:-1]) == realm:
-                    return parts[-1]
-            return 0
-
-
 class HTTPServer(TCPServer):
     def __init__(self, host="localhost", port=8080):
         super().__init__(host=host, port=port)
@@ -55,7 +38,8 @@ class HTTPServer(TCPServer):
         500: "Server error"
     }
 
-    def md5sum(self, data):
+    @staticmethod
+    def md5sum(data):
         md_hash = md5()
         md_hash.update(data.encode("utf-8"))
         return md_hash.hexdigest()
@@ -156,6 +140,28 @@ class HTTPServer(TCPServer):
         pass
 
 
+class Htdigest:
+    htdigest_file = ".htdigest"
+    # admin admin1
+    # user user1
+
+    def create(self, username, realm, password):
+        with open(file=self.htdigest_file, mode="a") as f:
+            f.write(f"{username}:{realm}:{HTTPServer.md5sum(f'{username}:{realm}:{password}')}")
+            return True
+
+    def read(self, username, realm):
+        with open(file=self.htdigest_file) as f:
+            data = f.readlines()
+            for d in data:
+                parts = d.split(":")
+                if parts[0] == username and ":".join(parts[1:-1]) == realm:
+                    return parts[-1]
+            return 0
+
+
 if __name__ == '__main__':
     http_server = HTTPServer(port=8050)
+    Htdigest().create("user2", http_server.realm, "user2")
+    Htdigest().create("test", http_server.realm, "test")
     http_server.start()

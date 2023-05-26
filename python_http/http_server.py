@@ -162,6 +162,6 @@ class Htdigest:
 
 if __name__ == '__main__':
     http_server = HTTPServer(port=8050)
-    Htdigest().create("user2", http_server.realm, "user2")
-    Htdigest().create("test", http_server.realm, "test")
+    # Htdigest().create("user2", http_server.realm, "user2")
+    # Htdigest().create("test", http_server.realm, "test")
     http_server.start()

@@ -1,6 +1,7 @@
 import copy
 import uuid
 import time
+import subprocess
 import re
 from string import Template
 from hashlib import md5
@@ -12,6 +13,21 @@ SUPER_SECRET = ["/super_secret"]
 ROUTES = NON_SECRET + SECRET + SUPER_SECRET
 
 user = ["/secret"]
+
+
+class Htdigest:
+    htdigest_file = ".htdigest"
+    # def create(self):
+    #     subprocess.run()
+
+    def read(self, username, realm):
+        with open(file=self.htdigest_file) as f:
+            data = f.readlines()
+            for d in data:
+                parts = d.split(":")
+                if parts[0] == username and ":".join(parts[1:-1]) == realm:
+                    return parts[-1]
+            return 0
 
 
 class HTTPServer(TCPServer):
@@ -37,7 +53,7 @@ class HTTPServer(TCPServer):
         500: "Server error"
     }
 
-    def md5sum(sefl, data):
+    def md5sum(self, data):
         md_hash = md5()
         md_hash.update(data.encode("utf-8"))
         return md_hash.hexdigest()
@@ -75,7 +91,8 @@ class HTTPServer(TCPServer):
         if auth_data["opaque"] != self.opaque:
             return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers, send_data=True)
 
-        ha1 = self.calc_ha1(auth_data["username"])
+        # ha1 = self.calc_ha1(auth_data["username"])
+        ha1 = Htdigest().read(auth_data["username"], auth_data["realm"])
         ha2 = self.md5sum(f"{method_type}:{uri}")
         my_resp = self.md5sum(f"{ha1}:{auth_data['nonce']}:{auth_data['nc']}:{auth_data['cnonce']}:{auth_data['qop']}:{ha2}")
 

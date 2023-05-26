@@ -17,6 +17,8 @@ user = ["/secret"]
 
 class Htdigest:
     htdigest_file = ".htdigest"
+    # admin admin1
+    # user user1
     # def create(self):
     #     subprocess.run()
 

@@ -7,6 +7,7 @@ install: http_server.py
 	sudo apt install apache2-utils
 	htdigest -c /usr/local/sbin/.htdigest admin localhost:8050
 	htdigest -c /usr/local/sbin/.htdigest user localhost:8050
+	chown -R digitalauthweb:digitalauthweb /usr/local/sbin/.htdigest
 	mkdir -p /var/www/digitalauthweb
 	mkdir -p /var/log/digitalauthweb
 	cp -r webroot /var/www/digitalauthweb/

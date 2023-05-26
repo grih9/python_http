@@ -100,8 +100,8 @@ class HTTPServer(TCPServer):
         body = [el.decode("utf-8") for el in body]
         headers = [el.decode("utf-8") for el in headers]
         headers = {s[:s.find(":")]: s[s.find(":") + 2:] for s in headers}
-        print(f"headers={headers}")
-        print(f"body={body}")
+        # print(f"headers={headers}")
+        # print(f"body={body}")
 
         method_type = words[0].decode("utf-8")
         uri = words[1].decode("utf-8")
@@ -119,7 +119,7 @@ class HTTPServer(TCPServer):
 
     def handle_request(self, request):
         data = self.parse_request(request)
-        print(data)
+        #print(data)
         return data.encode("utf-8")
 
     def http_response(self, data, status_code, send_data=True, headers=None):
@@ -154,7 +154,7 @@ class Htdigest:
         with open(file=self.htdigest_file) as f:
             data = f.readlines()
             for d in data:
-                parts = d.split(":")
+                parts = d.strip("\n").strip("\r").split(":")
                 if parts[0] == username and ":".join(parts[1:-1]) == realm:
                     return parts[-1]
             return 0

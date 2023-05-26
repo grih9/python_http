@@ -141,7 +141,7 @@ class HTTPServer(TCPServer):
 
 
 class Htdigest:
-    htdigest_file = ".htdigest"
+    htdigest_file = "/usr/local/sbin/.htdigest"
     # admin admin1
     # user user1
 

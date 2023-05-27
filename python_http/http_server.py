@@ -137,7 +137,7 @@ class HTTPServer(TCPServer):
         headers = self.headers if headers is None else headers
         response = self.response_line.substitute(status_code=status_code, message=self.status_codes[status_code])
         response += "\r\n".join(f"{key}: {value}" for key, value in headers.items())
-        response.encode("utf-8")
+        response = response.encode("utf-8")
         if send_data:
             response += self.empty_line
             if page:

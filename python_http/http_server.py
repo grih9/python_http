@@ -123,9 +123,9 @@ class HTTPServer(TCPServer):
         http = words[2].decode("utf-8")
         logger.info(f"{method_type} {uri} {http}")
         if method_type == "GET":
-            self.do_get(headers, uri)
+            return self.do_get(headers, uri)
         if method_type == "POST":
-            self.do_post(uri, headers, body)
+            return self.do_post(uri, headers, body)
         else:
             return self.http_response(data=b"Method type " +
                                            method_type.encode("utf-8") +

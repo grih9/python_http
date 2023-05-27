@@ -35,13 +35,15 @@ class TCPServer:
 
             while True:
                 soc, addr = self.__socket.accept()
-                soc.settimeout(2)
+                soc.settimeout(3)
                 with soc:
                     # logger.info(f"Connected {addr}")
                     logger.info(f"Connected {addr}")
                     data = self.read_data(soc)
                     logging.info(f"Received data {data.decode('utf-8')}")
                     response = self.handle_request(data)
+                    if response is None:
+                        continue
                     soc.sendall(response)
                     logging.info(f"Closed {addr}")
 

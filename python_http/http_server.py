@@ -83,9 +83,9 @@ class HTTPServer(TCPServer):
             return self.http_response(data=b"Reauthorize please!", status_code=401,
                                       headers=headers), auth_data["username"]
 
-        if uri in Settings.login_resources and auth_data["realm"] != "auth":
+        if uri in Settings.login_resources and "auth" not in auth_data["realm"]:
             return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers), None
-        elif uri in Settings.admin_login_resources and auth_data["realm"] != "admin":
+        elif uri in Settings.admin_login_resources and "admin" not in auth_data["realm"]:
             return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers), None
 
         # ha1 = self.calc_ha1(auth_data["username"])
@@ -107,7 +107,7 @@ class HTTPServer(TCPServer):
         lines = request.split(b"\r\n")
         request_line = lines[0]
         if not request_line:
-            return self.http_response(data=b"Bad request", status_code=400, send_data=True)
+            return None
 
         words = request_line.split(b" ")
         data = lines[1:]

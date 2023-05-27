@@ -1,6 +1,6 @@
 class Settings:
     admins = ["admin", "root"]
-    auth_resources = ["/private", "/secret"]
+    auth_resources = ["/private", "/private/index.html", "/private/picture.png", "/secret"]
     auth_resources_methods = ["GET"]
     admin_resources = ["/admin", "/super_secret"]
     admin_resources_methods = ["GET"]

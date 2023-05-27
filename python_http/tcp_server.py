@@ -37,10 +37,9 @@ class TCPServer:
                 soc, addr = self.__socket.accept()
                 soc.settimeout(3)
                 with soc:
-                    # logger.info(f"Connected {addr}")
                     logger.info(f"Connected {addr}")
                     data = self.read_data(soc)
-                    logging.info(f"Received data {data.decode('utf-8')}")
+                    logging.info(f"Received data\n: {data.decode('utf-8')}")
                     response = self.handle_request(data)
                     if response is None:
                         logger.info("Response in None")

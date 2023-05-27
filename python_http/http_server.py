@@ -7,21 +7,16 @@ import uuid
 from hashlib import md5
 from string import Template
 
+from settings import Settings
 from tcp_server import TCPServer
 
-NON_SECRET = ["/", "/start", "/go/123"]
-SECRET = ["/secret", "/admin"]
-SUPER_SECRET = ["/super_secret"]
-ROUTES = NON_SECRET + SECRET + SUPER_SECRET
-
-user = ["/secret"]
+logger = logging.getLogger()
 
 
 class HTTPServer(TCPServer):
     def __init__(self, host="localhost", port=8080, root_package="./webroot"):
         super().__init__(host=host, port=port)
         self.root_package = root_package
-        self.realm = f"{self.host}:{self.port}"
         self.opaque = uuid.uuid4().hex
 
     data = b"HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!"
@@ -47,25 +42,32 @@ class HTTPServer(TCPServer):
         md_hash.update(data.encode("utf-8"))
         return md_hash.hexdigest()
 
-    def calc_ha1(self, username='test', password="test"):
-        # get_password(username)
-        return self.md5sum(f'{username}:{self.realm}:{password}')
+    def calc_ha1(self, username="test", realm="auth", password="test"):
+        return self.md5sum(f'{username}:{realm}:{password}')
 
     def check_auth(self, data, method_type, uri):
         is_authorized = "Authorization" in data
         headers = copy.deepcopy(self.headers)
         nonce = self.md5sum(str(time.time()))
-        headers["WWW-Authenticate"] = f'Digest realm="{self.realm}", ' \
+        realm = "auth"
+        if uri in Settings.admin_resources or uri in Settings.admin_login_resources:
+            realm = "admin"
+        if method_type not in Settings.need_auth_methods:
+            return self.http_response(data=b"Method type " +
+                                           method_type.encode("utf-8") +
+                                           b" is not allowed for " +
+                                           uri.encode("utf-8"), status_code=400, headers=headers), None
+        headers["WWW-Authenticate"] = f'Digest realm="{realm}", ' \
                                       f'nonce="{nonce}", ' \
                                       f'opaque="{self.opaque}", ' \
                                       f'algorithm=MD5, qop="auth"'
         if not is_authorized:
-            return self.http_response(data=b"Authorize please!", status_code=401, headers=headers, send_data=False)
+            return self.http_response(data=b"Authorize please!", status_code=401, headers=headers), None
 
         auth_data = data["Authorization"]
         matches = re.compile("Digest \s+ (.*)", re.I + re.X).match(auth_data)
         if not matches:
-            return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers, send_data=True)
+            return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers), None
 
         vals = re.compile(", \s*", re.I + re.X).split(matches.group(1))
         auth_data = {}
@@ -74,11 +76,17 @@ class HTTPServer(TCPServer):
         for val in vals:
             ms = pat.match(val)
             if not ms:
-                return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers, send_data=True)
+                return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers), None
             auth_data[ms.group(1)] = ms.group(3)
 
         if auth_data["opaque"] != self.opaque:
-            return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers, send_data=True)
+            return self.http_response(data=b"Reauthorize please!", status_code=401,
+                                      headers=headers), auth_data["username"]
+
+        if uri in Settings.login_resources and auth_data["realm"] != "auth":
+            return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers), None
+        elif uri in Settings.admin_login_resources and auth_data["realm"] != "admin":
+            return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers), None
 
         # ha1 = self.calc_ha1(auth_data["username"])
         ha1 = Htdigest().read(auth_data["username"], auth_data["realm"])
@@ -86,16 +94,20 @@ class HTTPServer(TCPServer):
         my_resp = self.md5sum(f"{ha1}:{auth_data['nonce']}:{auth_data['nc']}:{auth_data['cnonce']}:{auth_data['qop']}:{ha2}")
 
         if my_resp != auth_data['response']:
-            return self.http_response(data=b"Auth_failed!", status_code=401, headers=headers, send_data=True)
-
-        if auth_data["uri"] not in user:
-            return self.http_response(data=b"Forbidden!", status_code=403, send_data=True)
+            logger.info(f"Wrong password. Auth failed for user {auth_data['username']} with realm {auth_data['realm']}")
+            return self.http_response(data=b"Auth_failed!", status_code=401,
+                                      headers=headers, send_data=True), auth_data["username"]
+        if auth_data["realm"] == "auth":
+            if uri in Settings.admin_resources or uri in Settings.admin_login_resources:
+                return self.http_response(data=uri.encode("utf-8") + b" forbidden with auth only rights!",
+                                          status_code=403)
+        return None, auth_data["username"]
 
     def parse_request(self, request):
         lines = request.split(b"\r\n")
         request_line = lines[0]
         if not request_line:
-            return self.http_response(data=b"Bad request", status_code=400, send_data=False)
+            return self.http_response(data=b"Bad request", status_code=400, send_data=True)
 
         words = request_line.split(b" ")
         data = lines[1:]
@@ -109,25 +121,16 @@ class HTTPServer(TCPServer):
         method_type = words[0].decode("utf-8")
         uri = words[1].decode("utf-8")
         http = words[2].decode("utf-8")
-        logging.info(f"{method_type} {uri} {http}")
-        if uri in SECRET or uri in SUPER_SECRET:
-            res = self.check_auth(headers, method_type, uri)
-            if res:
-                return res
-            return self.http_response(data=b"This is " + uri.encode("utf-8") + b" page", status_code=200)
-        elif uri in NON_SECRET:
-            return self.http_response(data=b"This is " + uri.encode("utf-8") + b" page", status_code=200)
+        logger.info(f"{method_type} {uri} {http}")
+        if method_type == "GET":
+            self.do_get(headers, uri)
+        if method_type == "POST":
+            self.do_post(uri, headers, body)
         else:
-            try:
-                with open(self.root_package + uri, "rb") as f:
-                    data = f.read()
-                    if uri[:8] == "/private":
-                        res = self.check_auth(headers, method_type, uri)
-                        if res:
-                            return res
-                    return self.http_response(page=data, status_code=200)
-            except FileNotFoundError:
-                return self.http_response(data=uri.encode("utf-8") + b" not found!", status_code=404)
+            return self.http_response(data=b"Method type " +
+                                           method_type.encode("utf-8") +
+                                           b" is not allowed for " +
+                                           uri.encode("utf-8"), status_code=400, headers=headers), None
 
     def handle_request(self, request):
         data = self.parse_request(request)
@@ -145,14 +148,47 @@ class HTTPServer(TCPServer):
             else:
                 body = b"""<html><body><h1>""" + data + b"""</h1></body></html>"""
                 response += body
-        logging.info(f"{status_code} {len(data)}")
+        logger.info(f"{status_code} {len(data)}")
         return response
 
-    def do_get(self, uri):
-        pass
+    def do_get(self, headers, uri):
+        if uri in Settings.need_auth:
+            res, user = self.check_auth(headers, "GET", uri)
+            if res:
+                return res
+            try:
+                with open(self.root_package + uri, "rb") as f:
+                    data = f.read()
+                    return self.http_response(page=data, status_code=200)
+            except FileNotFoundError:
+                data = b"This is " + uri.encode("utf-8") + b" page. Enable with auth only. User: " + \
+                       user.encode("utf-8")
+                if user in Settings.admins:
+                    data = b"This is " + uri.encode("utf-8") + b" page. This page for admins only. User: " + \
+                           user.encode("utf-8")
+                return self.http_response(data=data, status_code=200)
+        else:
+            if uri in Settings.login_resources or uri in Settings.admin_login_resources:
+                res, user = self.check_auth(headers, "GET", uri)
+                if res:
+                    return res
+                role = b"admin" if uri in Settings.admin_login_resources else b"auth"
+                data = b"You authorized as user: " + user.encode("utf-8") + b" with role: " + role
+                return self.http_response(data=data, status_code=200)
+            try:
+                with open(self.root_package + uri, "rb") as f:
+                    data = f.read()
+                    return self.http_response(page=data, status_code=200)
+            except FileNotFoundError:
+                return self.http_response(data=uri.encode("utf-8") + b" not found!", status_code=404)
 
-    def do_post(self, uri, body=None):
-        pass
+    def do_post(self, uri, headers, body=None):
+        if uri in Settings.need_auth:
+            res, user = self.check_auth(headers, "POST", uri)
+            if res:
+                return res
+        data = b"You did POST on " + uri.encode("utf-8")
+        return self.http_response(data=data, status_code=200)
 
 
 class Htdigest:

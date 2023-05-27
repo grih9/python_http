@@ -4,9 +4,10 @@ install: http_server.py
 	useradd -c "DigitalAuthWeb user" -r -s /sbin/nologin -d /var/www/digitalauthweb digitalauthweb
 	install -o root -g root -m 0755 http_server.py /usr/local/sbin
 	install -o root -g root -m 0755 tcp_server.py /usr/local/sbin
+	install -o root -g root -m 0755 settings.py /usr/local/sbin
 	sudo apt install apache2-utils
-	htdigest -c /usr/local/sbin/.htdigest localhost:8080 admin
-	htdigest /usr/local/sbin/.htdigest localhost:8080 user
+	htdigest -c /usr/local/sbin/.htdigest admin admin
+	htdigest /usr/local/sbin/.htdigest auth user
 	mkdir -p /var/www/digitalauthweb
 	mkdir -p /var/log/digitalauthweb
 	cp -r webroot /var/www/digitalauthweb/

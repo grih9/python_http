@@ -125,7 +125,7 @@ class HTTPServer(TCPServer):
                         res = self.check_auth(headers, method_type, uri)
                         if res:
                             return res
-                    return self.http_response(data=data, status_code=200)
+                    return self.http_response(page=data, status_code=200)
             except FileNotFoundError:
                 return self.http_response(data=uri.encode("utf-8") + b" not found!", status_code=404)
 
@@ -134,14 +134,17 @@ class HTTPServer(TCPServer):
         #print(data)
         return data.encode("utf-8")
 
-    def http_response(self, data, status_code, send_data=True, headers=None):
+    def http_response(self, data=b"", status_code=200, page=None, send_data=True, headers=None):
         headers = self.headers if headers is None else headers
         response = self.response_line.substitute(status_code=status_code, message=self.status_codes[status_code])
         response += "\r\n".join(f"{key}: {value}" for key, value in headers.items())
         if send_data:
             response += self.empty_line
-            body = b"""<html><body><h1>""" + data + b"""</h1></body></html>"""
-            response += body.decode("utf-8")
+            if page:
+                response += page.decode("utf-8")
+            else:
+                body = b"""<html><body><h1>""" + data + b"""</h1></body></html>"""
+                response += body.decode("utf-8")
         logging.info(f"{status_code} {len(data)}")
         return response
 

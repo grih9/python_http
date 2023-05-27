@@ -52,7 +52,7 @@ class HTTPServer(TCPServer):
         headers = copy.deepcopy(self.headers)
         nonce = self.md5sum(str(time.time()))
         realm = "auth"
-        if uri in Settings.admin_resources:
+        if uri in Settings.admin_resources or uri == "/check_login/admin":
             realm = "admin"
         if method_type not in Settings.need_auth_methods:
             logger.debug("Method not allowed")
@@ -165,35 +165,36 @@ class HTTPServer(TCPServer):
         return response
 
     def do_get(self, headers, uri, addr):
+        method_type = "GET"
         if uri in Settings.need_auth:
-            res, (user, role) = self.check_auth(headers, "GET", uri, addr=addr)
+            res, (user, role) = self.check_auth(headers, method_type, uri, addr=addr)
             if res:
                 return res
             try:
                 with open(self.root_package + uri, "rb") as f:
                     data = f.read()
-                    return self.http_response(page=data, status_code=200, uri=uri, method_type="GET", addr=addr)
+                    return self.http_response(page=data, status_code=200, uri=uri, method_type=method_type, addr=addr)
             except (FileNotFoundError, IsADirectoryError):
                 data = b"This is " + uri.encode("utf-8") + b" page. Enable with auth only. User: " + \
                        user.encode("utf-8")
                 if role == "admin":
                     data = b"This is " + uri.encode("utf-8") + b" page. This page for admins only. User: " + \
                            user.encode("utf-8")
-                return self.http_response(data=data, status_code=200, uri=uri, method_type="GET", addr=addr)
+                return self.http_response(data=data, status_code=200, uri=uri, method_type=method_type, addr=addr)
         else:
             if uri in Settings.login_resources:
                 res, (user, role) = self.check_auth(headers, "GET", uri, addr=addr)
-                if res:
-                    return res
                 data = b"You authorized as user: " + user.encode("utf-8") + b" with role: " + role.encode("utf-8")
-                return self.http_response(data=data, status_code=200, uri=uri, method_type="GET", addr=addr)
+                if res:
+                    data = b"You are not authorized with this role!"
+                return self.http_response(data=data, status_code=200, uri=uri, method_type=method_type, addr=addr)
             try:
                 with open(self.root_package + uri, "rb") as f:
                     data = f.read()
-                    return self.http_response(page=data, status_code=200, uri=uri, method_type="GET", addr=addr)
+                    return self.http_response(page=data, status_code=200, uri=uri, method_type=method_type, addr=addr)
             except (FileNotFoundError, IsADirectoryError):
                 return self.http_response(data=uri.encode("utf-8") + b" not found!", status_code=404,
-                                          uri=uri, method_type="GET", addr=addr)
+                                          uri=uri, method_type=method_type, addr=addr)
 
     def do_post(self, uri, headers, addr, body=None):
         if uri in Settings.need_auth:

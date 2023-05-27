@@ -35,7 +35,7 @@ class TCPServer:
 
             while True:
                 soc, addr = self.__socket.accept()
-                soc.settimeout(5)
+                soc.settimeout(3)
                 with soc:
                     # logger.info(f"Connected {addr}")
                     logger.info(f"Connected {addr}")

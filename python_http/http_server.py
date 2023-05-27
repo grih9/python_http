@@ -84,7 +84,7 @@ class HTTPServer(TCPServer):
         logger.info(self.opaque)
         if auth_data["opaque"] != self.opaque:
             return self.http_response(data=b"Reauthorize please!", status_code=401,
-                                      headers=headers), auth_data["username"]
+                                      headers=headers), (auth_data["username"], auth_data["realm"])
 
         # ha1 = self.calc_ha1(auth_data["username"])
         ha1 = Htdigest().read(auth_data["username"], auth_data["realm"])

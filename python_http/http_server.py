@@ -184,9 +184,10 @@ class HTTPServer(TCPServer):
         else:
             if uri in Settings.login_resources:
                 res, (user, role) = self.check_auth(headers, "GET", uri, addr=addr)
-                data = b"You authorized as user: " + user.encode("utf-8") + b" with role: " + role.encode("utf-8")
                 if res:
                     data = b"You are not authorized with this role!"
+                else:
+                    data = b"You authorized as user: " + user.encode("utf-8") + b" with role: " + role.encode("utf-8")
                 return self.http_response(data=data, status_code=200, uri=uri, method_type=method_type, addr=addr)
             try:
                 with open(self.root_package + uri, "rb") as f:

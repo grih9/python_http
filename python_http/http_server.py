@@ -31,7 +31,7 @@ class HTTPServer(TCPServer):
         "Server": "python-html-server",
         "Content-Type": "text/html"
     }
-    empty_line = "\r\n\r\n"
+    empty_line = b"\r\n\r\n"
     status_codes = {
         200: "OK",
         400: "Bad request",
@@ -63,11 +63,11 @@ class HTTPServer(TCPServer):
             return self.http_response(data=b"Authorize please!", status_code=401, headers=headers, send_data=False)
 
         auth_data = data["Authorization"]
-        matches = re.compile('Digest \s+ (.*)', re.I + re.X).match(auth_data)
+        matches = re.compile("Digest \s+ (.*)", re.I + re.X).match(auth_data)
         if not matches:
             return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers, send_data=True)
 
-        vals = re.compile(', \s*', re.I + re.X).split(matches.group(1))
+        vals = re.compile(", \s*", re.I + re.X).split(matches.group(1))
         auth_data = {}
 
         pat = re.compile('(\S+?) \s* = \s* ("?) (.*) \\2', re.X)
@@ -131,20 +131,20 @@ class HTTPServer(TCPServer):
 
     def handle_request(self, request):
         data = self.parse_request(request)
-        #print(data)
-        return data.encode("utf-8")
+        return data
 
     def http_response(self, data=b"", status_code=200, page=None, send_data=True, headers=None):
         headers = self.headers if headers is None else headers
         response = self.response_line.substitute(status_code=status_code, message=self.status_codes[status_code])
         response += "\r\n".join(f"{key}: {value}" for key, value in headers.items())
+        response.encode("utf-8")
         if send_data:
             response += self.empty_line
             if page:
-                response += page.decode("utf-8")
+                response += page
             else:
                 body = b"""<html><body><h1>""" + data + b"""</h1></body></html>"""
-                response += body.decode("utf-8")
+                response += body
         logging.info(f"{status_code} {len(data)}")
         return response
 
@@ -175,7 +175,7 @@ class Htdigest:
             return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(filename="/var/log/digitalauthweb/digitalauthweb.log", level=logging.DEBUG,
                         format="%(asctime)s %(message)s")
     argv = sys.argv

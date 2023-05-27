@@ -1,10 +1,12 @@
 import copy
-import uuid
-import time
-import subprocess
+import logging
 import re
-from string import Template
+import sys
+import time
+import uuid
 from hashlib import md5
+from string import Template
+
 from tcp_server import TCPServer
 
 NON_SECRET = ["/", "/start", "/go/123"]
@@ -16,8 +18,9 @@ user = ["/secret"]
 
 
 class HTTPServer(TCPServer):
-    def __init__(self, host="localhost", port=8080):
+    def __init__(self, host="localhost", port=8080, root_package="./webroot"):
         super().__init__(host=host, port=port)
+        self.root_package = root_package
         self.realm = f"{self.host}:{self.port}"
         self.opaque = uuid.uuid4().hex
 
@@ -106,7 +109,7 @@ class HTTPServer(TCPServer):
         method_type = words[0].decode("utf-8")
         uri = words[1].decode("utf-8")
         http = words[2].decode("utf-8")
-        print(f"method_type={method_type} uri={uri} http={http}")
+        logging.info(f"{method_type} {uri} {http}")
         if uri in SECRET or uri in SUPER_SECRET:
             res = self.check_auth(headers, method_type, uri)
             if res:
@@ -115,7 +118,18 @@ class HTTPServer(TCPServer):
         elif uri in NON_SECRET:
             return self.http_response(data=b"This is " + uri.encode("utf-8") + b" page", status_code=200)
         else:
-            return self.http_response(data=uri.encode("utf-8") + b" not found!", status_code=404)
+            try:
+                with open(self.root_package + uri) as f:
+                    data = f.read()
+                    if uri[:8] == "/private":
+                        res = self.check_auth(headers, method_type, uri)
+                        if res:
+                            return res
+                    return self.http_response(data=data.encode("utf-8"), status_code=200)
+            except FileNotFoundError:
+                return self.http_response(data=uri.encode("utf-8") + b" not found!", status_code=404)
+            finally:
+                return self.http_response(data=b"Server error", status_code=500)
 
     def handle_request(self, request):
         data = self.parse_request(request)
@@ -127,10 +141,10 @@ class HTTPServer(TCPServer):
         response = self.response_line.substitute(status_code=status_code, message=self.status_codes[status_code])
         response += "\r\n".join(f"{key}: {value}" for key, value in headers.items())
         if send_data:
-            response += self    .empty_line
+            response += self.empty_line
             body = b"""<html><body><h1>""" + data + b"""</h1></body></html>"""
             response += body.decode("utf-8")
-
+        logging.info(f"{status_code} {len(data)}")
         return response
 
     def do_get(self, uri):
@@ -161,7 +175,14 @@ class Htdigest:
 
 
 if __name__ == '__main__':
-    http_server = HTTPServer(port=8050)
+    logging.basicConfig(filename="/var/log/digitalauthweb/digitalauthweb.log", encoding="utf-8", level=logging.DEBUG,
+                        format="%(asctime)s %(message)s")
+    argv = sys.argv
+    if len(argv) != 3:
+        raise Exception
+    in_port = int(argv[1])
+    in_root_package = argv[2]
+    http_server = HTTPServer(port=in_port, root_package=in_root_package)
     # Htdigest().create("user2", http_server.realm, "user2")
     # Htdigest().create("test", http_server.realm, "test")
     http_server.start()

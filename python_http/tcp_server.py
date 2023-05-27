@@ -1,6 +1,5 @@
 import logging
 import socket
-from time import sleep
 
 logger = logging.getLogger()
 
@@ -32,20 +31,19 @@ class TCPServer:
 
             self.__socket.listen(10)
 
-            # logger.info(f"Listening on {self.__socket.getsockname()}")
-            print(f"Listening on port {self.port}, {self.__socket.getsockname()}")
+            logging.info(f"Listening on port {self.port}, {self.__socket.getsockname()}")
 
             while True:
                 soc, addr = self.__socket.accept()
                 soc.settimeout(2)
                 with soc:
                     # logger.info(f"Connected {addr}")
-                    print(f"Connected {addr}")
+                    logger.info(f"Connected {addr}")
                     data = self.read_data(soc)
-                    print(f"Received data {data.decode('utf-8')}")
+                    logging.info(f"Received data {data.decode('utf-8')}")
                     response = self.handle_request(data)
                     soc.sendall(response)
-                    print(f"Closed {addr}")
+                    logging.info(f"Closed {addr}")
 
     def handle_request(self, data):
         return data

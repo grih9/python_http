@@ -175,9 +175,9 @@ class HTTPServer(TCPServer):
                     data = f.read()
                     return self.http_response(page=data, status_code=200, uri=uri, method_type=method_type, addr=addr)
             except (FileNotFoundError, IsADirectoryError):
-                data = b"This is " + uri.encode("utf-8") + b" page. Enable with auth only. User: " + \
+                data = b"This is " + uri.encode("utf-8") + b" page. Enable with auth. User: " + \
                        user.encode("utf-8")
-                if role == "admin":
+                if uri in Settings.admin_resources:
                     data = b"This is " + uri.encode("utf-8") + b" page. This page for admins only. User: " + \
                            user.encode("utf-8")
                 return self.http_response(data=data, status_code=200, uri=uri, method_type=method_type, addr=addr)

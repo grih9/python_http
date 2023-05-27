@@ -21,6 +21,8 @@ uninstall:
 	rm -rf /var/www/digitalauthweb
 	rm -rf /var/log/digitalauthweb
 	rm -f /usr/local/sbin/http_server.py
+	rm -f /usr/local/sbin/tcp_server.py
+	rm -f /usr/local/sbin/.htdigest
 	rm -f /etc/systemd/system/digitalauthweb.service
 	systemctl daemon-reload
 	userdel -f digitalauthweb

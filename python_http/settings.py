@@ -2,7 +2,8 @@ class Settings:
     admins = ["admin", "root"]
     auth_resources = ["/private", "/private/index.html", "/private/picture.png", "/secret"]
     auth_resources_methods = ["GET"]
-    admin_resources = ["/admin", "/super_secret"]
+    admin_resources = ["/admin", "/super_secret", "/private/admin", "/private/admin/index.html",
+                       "/private/admin/picture.png"]
     admin_resources_methods = ["GET"]
     no_auth_resources_methods = ["GET", "POST"]
     # login_resources = ["/login", "/relogin", "/auth"]

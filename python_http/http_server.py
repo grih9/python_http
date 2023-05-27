@@ -61,7 +61,7 @@ class HTTPServer(TCPServer):
                                            b" is not allowed for " +
                                            uri.encode("utf-8"),
                                       status_code=400, headers=headers,
-                                      uri=uri, method_type=method_type, addr=addr), None
+                                      uri=uri, method_type=method_type, addr=addr), (None, None)
         headers["WWW-Authenticate"] = f'Digest realm="{realm}", ' \
                                       f'nonce="{nonce}", ' \
                                       f'opaque="{self.opaque}", ' \
@@ -69,13 +69,13 @@ class HTTPServer(TCPServer):
         if not is_authorized:
             logger.debug("Not authorized")
             return self.http_response(data=b"Authorize please!", status_code=401, headers=headers,
-                                      uri=uri, method_type=method_type, addr=addr), None
+                                      uri=uri, method_type=method_type, addr=addr, send_data=False), (None, None)
         auth_data = data["Authorization"]
         matches = re.compile("Digest \s+ (.*)", re.I + re.X).match(auth_data)
         if not matches:
             logger.debug("Bad header")
             return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers,
-                                      uri=uri, method_type=method_type, addr=addr), None
+                                      uri=uri, method_type=method_type, addr=addr, send_data=False), (None, None)
 
         vals = re.compile(", \s*", re.I + re.X).split(matches.group(1))
         auth_data = {}
@@ -85,13 +85,13 @@ class HTTPServer(TCPServer):
             if not ms:
                 logger.debug("Bad header, not ms")
                 return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers,
-                                          uri=uri, method_type=method_type, addr=addr), None
+                                          uri=uri, method_type=method_type, addr=addr, send_data=False), (None, None)
             auth_data[ms.group(1)] = ms.group(3)
 
         if auth_data["opaque"] != self.opaque:
             logger.debug("Bad or old opaque")
             return self.http_response(data=b"Reauthorize please!", status_code=401,
-                                      headers=headers, uri=uri, method_type=method_type, addr=addr),\
+                                      headers=headers, uri=uri, method_type=method_type, addr=addr, send_data=False),\
                 (auth_data["username"], auth_data["realm"])
 
         # ha1 = self.calc_ha1(auth_data["username"])

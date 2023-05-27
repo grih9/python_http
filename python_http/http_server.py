@@ -128,8 +128,6 @@ class HTTPServer(TCPServer):
                     return self.http_response(data=data.encode("utf-8"), status_code=200)
             except FileNotFoundError:
                 return self.http_response(data=uri.encode("utf-8") + b" not found!", status_code=404)
-            finally:
-                return self.http_response(data=b"Server error", status_code=500)
 
     def handle_request(self, request):
         data = self.parse_request(request)

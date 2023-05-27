@@ -119,13 +119,13 @@ class HTTPServer(TCPServer):
             return self.http_response(data=b"This is " + uri.encode("utf-8") + b" page", status_code=200)
         else:
             try:
-                with open(self.root_package + uri) as f:
+                with open(self.root_package + uri, "rb") as f:
                     data = f.read()
                     if uri[:8] == "/private":
                         res = self.check_auth(headers, method_type, uri)
                         if res:
                             return res
-                    return self.http_response(data=data.encode("utf-8"), status_code=200)
+                    return self.http_response(data=data, status_code=200)
             except FileNotFoundError:
                 return self.http_response(data=uri.encode("utf-8") + b" not found!", status_code=404)
 

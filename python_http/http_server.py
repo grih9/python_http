@@ -117,11 +117,12 @@ class HTTPServer(TCPServer):
         headers = {s[:s.find(":")]: s[s.find(":") + 2:] for s in headers}
         # print(f"headers={headers}")
         # print(f"body={body}")
-
         method_type = words[0].decode("utf-8")
         uri = words[1].decode("utf-8")
         http = words[2].decode("utf-8")
         logger.info(f"{method_type} {uri} {http}")
+        if uri == "" or uri == "/":
+            uri = "/index.html"
         if method_type == "GET":
             return self.do_get(headers, uri)
         if method_type == "POST":

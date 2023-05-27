@@ -79,6 +79,8 @@ class HTTPServer(TCPServer):
                 return self.http_response(data=b"Reauthorize please!", status_code=401, headers=headers), None
             auth_data[ms.group(1)] = ms.group(3)
 
+        logger.info(auth_data["opaque"])
+        logger.info(self.opaque)
         if auth_data["opaque"] != self.opaque:
             return self.http_response(data=b"Reauthorize please!", status_code=401,
                                       headers=headers), auth_data["username"]

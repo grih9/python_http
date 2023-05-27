@@ -100,7 +100,7 @@ class HTTPServer(TCPServer):
         if auth_data["realm"] == "auth":
             if uri in Settings.admin_resources or uri in Settings.admin_login_resources:
                 return self.http_response(data=uri.encode("utf-8") + b" forbidden with auth only rights!",
-                                          status_code=403)
+                                          status_code=403), auth_data["username"]
         return None, auth_data["username"]
 
     def parse_request(self, request):

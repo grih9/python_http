@@ -175,7 +175,7 @@ class Htdigest:
 
 
 if __name__ == '__main__':
-    logging.basicConfig(filename="/var/log/digitalauthweb/digitalauthweb.log", encoding="utf-8", level=logging.DEBUG,
+    logging.basicConfig(filename="/var/log/digitalauthweb/digitalauthweb.log", level=logging.DEBUG,
                         format="%(asctime)s %(message)s")
     argv = sys.argv
     if len(argv) != 3:

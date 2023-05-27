@@ -106,6 +106,10 @@ class HTTPServer(TCPServer):
                 (auth_data["username"], auth_data["realm"])
         if auth_data["realm"] == "auth" and uri in Settings.admin_resources:
             logger.debug(f"No rights for user {auth_data['username']}")
+            if auth_data["username"] in Settings.admins:
+                return self.http_response(data=b"Auth_failed!", status_code=401, headers=headers, send_data=True,
+                                          uri=uri, method_type=method_type, addr=addr), \
+                    (auth_data["username"], auth_data["realm"])
             return self.http_response(data=uri.encode("utf-8") + b" forbidden with auth only rights!",
                                       status_code=403, uri=uri, method_type=method_type, addr=addr),\
                 (auth_data["username"], auth_data["realm"])

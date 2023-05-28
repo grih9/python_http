@@ -133,7 +133,7 @@ class HTTPServer(TCPServer):
         uri = words[1].decode("utf-8")
         http = words[2].decode("utf-8")
         if method_type == "GET":
-            return self.do_get(headers, uri, addr=addr)
+            return self.do_get(headers, uri, addr=addr, body=body)
         if method_type == "POST":
             return self.do_post(uri, headers, addr=addr, body=body)
         else:
@@ -164,7 +164,7 @@ class HTTPServer(TCPServer):
         logger.info(f"{addr[0]}:{addr[1]} {uri} {method_type} {status_code} {len(response)}")
         return response
 
-    def do_get(self, headers, uri, addr):
+    def do_get(self, headers, uri, addr, body=None):
         method_type = "GET"
         if uri in Settings.need_auth:
             res, (user, role) = self.check_auth(headers, method_type, uri, addr=addr)

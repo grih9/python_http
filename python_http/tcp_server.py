@@ -28,9 +28,7 @@ class TCPServer:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as self.__socket:
             # self.__socket.setsockopt()
             self.__socket.bind((self.host, self.port))
-
             self.__socket.listen(10)
-
             logging.info(f"Listening on port {self.port}, {self.__socket.getsockname()}")
 
             while True:
@@ -43,7 +41,7 @@ class TCPServer:
                     response = self.handle_request(data, addr)
                     if response is None:
                         logger.debug("Empty request")
-                        #l ogger.info("Response in None")
+                        #logger.info("Response in None")
                         continue
                     soc.sendall(response)
                     #logger.info(f"Closed {addr}")

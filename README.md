@@ -19,11 +19,11 @@
 > /var/log/digitalauthweb/digitalauthweb.log
 
 Создание обычного (право доступа auth) нового пользователя:
->htdigest /usr/local/sbin/.htdigest auth <имя пользователя>
+>sudo htdigest /usr/local/sbin/.htdigest auth <имя пользователя>
 
 Создание нового администратора (для правильной работы кроме admin доступно только имя root)
->htdigest /usr/local/sbin/.htdigest admin root \
->htdigest /usr/local/sbin/.htdigest auth root
+>sudo htdigest /usr/local/sbin/.htdigest admin root \
+>sudo htdigest /usr/local/sbin/.htdigest auth root
 
 Выключение службы:
 >sudo make uninstall
